@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import type { User } from "../lib/supabase";
 
@@ -7,279 +8,174 @@ export interface AuthUser extends User {
 }
 
 export const useAuth = () => {
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    // Add a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn(
-          "Authentication loading timeout - forcing loading to false"
-        );
-        setLoading(false);
-      }
-    }, 10000); // 10 second timeout
+  // Query to get current session
+  const { data: session } = useQuery({
+    queryKey: ["auth", "session"],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
 
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error getting initial session:", error);
-        setLoading(false);
-      }
-    };
+  // Query to get user profile from database
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ["auth", "user", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
 
-    getInitialSession();
+      // Try to get user data with explicit error handling
+      console.log("Fetching user data for ID:", session.user.id);
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state change:", event, session?.user?.id);
-
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(loadingTimeout);
-    };
-  }, [loading]);
-
-  const fetchUserProfile = async (supabaseUserId: string) => {
-    try {
-      console.log("=== FETCH USER PROFILE START ===");
-      console.log("Fetching user profile for ID:", supabaseUserId);
-
-      // Test database connectivity first
-      console.log("Step 1: Testing database connectivity...");
-      const { error: testError } = await supabase
-        .from("users")
-        .select("count")
-        .limit(1);
-
-      if (testError) {
-        console.error("Database connectivity test failed:", testError);
-      } else {
-        console.log("Database connectivity test passed");
-      }
-
-      // First, let's check if the user profile exists
-      console.log("Step 2: Checking if user profile exists...");
-      const { data: existingProfile, error: checkError } = await supabase
-        .from("users")
-        .select("id, role, full_name, email")
-        .eq("id", supabaseUserId);
-
-      if (checkError) {
-        console.error("Error checking if user profile exists:", checkError);
-      } else {
-        console.log("Existing profile check result:", existingProfile);
-        console.log("Profile count:", existingProfile?.length || 0);
-      }
-
-      // Try to fetch the full profile
-      console.log("Step 3: Attempting to fetch full profile...");
+      // Simple query approach
       const { data, error } = await supabase
         .from("users")
         .select("*")
-        .eq("id", supabaseUserId)
-        .single();
-
-      console.log("Full profile query result:", { data, error });
+        .eq("id", session.user.id)
+        .maybeSingle();
 
       if (error) {
-        console.error("Error fetching user profile:", error);
-        console.error("Error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
-
-        // If the user profile doesn't exist, try to create it
-        if (error.code === "PGRST116") {
-          console.log("User profile not found, attempting to create one...");
-          await createUserProfile(supabaseUserId);
-        } else {
-          console.error(
-            "Non-PGRST116 error, cannot create profile automatically"
-          );
-          console.log("Setting user to null and loading to false");
-          setUser(null);
-          setLoading(false);
-        }
-      } else if (data) {
-        console.log("User profile found:", data);
-        console.log("Setting user and stopping loading...");
-        const userWithSupabaseId = {
-          ...data,
-          supabase_user_id: supabaseUserId,
-        };
-        console.log("Final user object:", userWithSupabaseId);
-        setUser(userWithSupabaseId);
-        setLoading(false);
-        console.log("User and loading state updated");
-      }
-
-      console.log("=== FETCH USER PROFILE END ===");
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      console.log("Setting user to null and loading to false due to error");
-      setUser(null);
-      setLoading(false);
-    }
-  };
-
-  const createUserProfile = async (supabaseUserId: string) => {
-    try {
-      // Get the current auth user to extract metadata
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
-
-      if (!authUser) {
-        console.error("No authenticated user found");
-        setLoading(false);
-        return;
-      }
-
-      // Extract user metadata from auth user
-      const userMetadata = authUser.user_metadata || {};
-      const { full_name, phone, role, vehicle_info } = userMetadata;
-
-      console.log("Creating user profile with metadata:", userMetadata);
-      console.log("Auth user ID:", authUser.id);
-      console.log("Supabase user ID:", supabaseUserId);
-
-      // Create user profile with the same ID as the auth user
-      const profileData = {
-        id: supabaseUserId,
-        role: role || "driver",
-        full_name: full_name || "Unknown User",
-        email: authUser.email || "",
-        phone: phone || "",
-        vehicle_info: vehicle_info || {},
-        status: "active",
-      };
-
-      console.log("Attempting to insert profile data:", profileData);
-
-      const { data, error } = await supabase
-        .from("users")
-        .insert(profileData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error creating user profile:", error);
-        console.error("Error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
-
-        // If it's a policy violation, try to understand what's happening
-        if (error.code === "42501") {
-          console.error(
-            "Policy violation - user may not have permission to insert"
-          );
-        }
-
-        // Create a minimal user object from auth data as fallback
-        console.log("Creating fallback user object from auth data");
-        const fallbackUser: AuthUser = {
-          id: supabaseUserId,
-          role: (role as "driver" | "admin") || "driver",
-          full_name: full_name || "Unknown User",
-          email: authUser.email || "",
-          phone: phone || "",
-          vehicle_info: vehicle_info || {},
-          status: "active" as const,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          supabase_user_id: supabaseUserId,
-        };
-
-        setUser(fallbackUser);
-        setLoading(false);
-        return;
-      } else if (data) {
-        console.log("User profile created successfully:", data);
-        setUser({ ...data, supabase_user_id: supabaseUserId });
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error creating user profile:", error);
-
-      // Create a minimal user object from auth data as fallback
-      try {
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser();
-        if (authUser) {
-          const userMetadata = authUser.user_metadata || {};
-          const fallbackUser: AuthUser = {
-            id: supabaseUserId,
-            role: (userMetadata.role as "driver" | "admin") || "driver",
-            full_name: userMetadata.full_name || "Unknown User",
-            email: authUser.email || "",
-            phone: userMetadata.phone || "",
-            vehicle_info: userMetadata.vehicle_info || {},
-            status: "active" as const,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            supabase_user_id: supabaseUserId,
+        console.error("Error fetching user data:", error);
+        if (typeof error === "object" && error !== null) {
+          const errorObj = error as {
+            message?: string;
+            details?: string;
+            hint?: string;
           };
-
-          setUser(fallbackUser);
-          setLoading(false);
-          return;
+          console.error(
+            "Error details:",
+            errorObj.message,
+            errorObj.details,
+            errorObj.hint
+          );
         }
-      } catch (fallbackError) {
-        console.error("Error creating fallback user:", fallbackError);
+        throw error;
       }
 
-      setUser(null);
-      setLoading(false);
-    }
-  };
+      if (!data) {
+        console.error("No user data found for ID:", session.user.id);
+        console.log("Attempting to create missing user profile...");
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+        // Try to create a basic user profile if it doesn't exist
+        try {
+          const { data: newUser, error: createError } = await supabase
+            .from("users")
+            .insert({
+              id: session.user.id,
+              email: session.user.email || "",
+              role: "supplier", // Default role for missing users
+              full_name: session.user.user_metadata?.full_name || "New User",
+              phone: session.user.user_metadata?.phone || "",
+              status: "active",
+            })
+            .select("*")
+            .single();
+
+          if (createError) {
+            console.error("Error creating user profile:", createError);
+            throw new Error(
+              "Failed to create user profile. Please contact support."
+            );
+          }
+
+          console.log("Successfully created missing user profile:", newUser);
+          return {
+            ...newUser,
+            supabase_user_id: session.user.id,
+          } as AuthUser;
+        } catch (createError) {
+          console.error("Failed to create user profile:", createError);
+          throw new Error(
+            "User profile not found and could not be created. Please contact support."
+          );
+        }
+      }
+
+      return {
+        ...data,
+        supabase_user_id: session.user.id,
+      } as AuthUser;
+    },
+    enabled: !!session?.user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+
+  // Mutation for sign in
+  const signInMutation = useMutation({
+    mutationFn: async ({
       email,
       password,
+    }: {
+      email: string;
+      password: string;
+    }) => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth", "session"] });
+    },
+  });
+
+  // Mutation for sign out
+  const signOutMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      // setUser(null); // This line was removed as per the new_code, as the user state is now managed by useQuery
+    },
+  });
+
+  // Set loading state based on queries
+  useEffect(() => {
+    if (session === undefined) {
+      setLoading(true);
+    } else {
+      setLoading(false);
+    }
+  }, [session]);
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        queryClient.invalidateQueries({ queryKey: ["auth", "session"] });
+      } else if (event === "SIGNED_OUT") {
+        queryClient.invalidateQueries({ queryKey: ["auth"] });
+      }
     });
 
-    if (error) throw error;
-    return data;
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
+  const signIn = async (email: string, password: string) => {
+    return signInMutation.mutateAsync({ email, password });
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    setUser(null);
+    return signOutMutation.mutateAsync();
   };
 
   return {
-    user,
-    loading,
+    user: user || null,
+    loading: loading || userLoading,
     signIn,
     signOut,
+    isSigningIn: signInMutation.isPending,
+    isSigningOut: signOutMutation.isPending,
   };
 };

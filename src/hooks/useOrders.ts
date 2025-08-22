@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import type { Order } from '../lib/supabase';
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
+import type { Order } from "../lib/supabase";
 
 export const useOrders = (driverId?: string, supplierId?: string) => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -11,22 +11,24 @@ export const useOrders = (driverId?: string, supplierId?: string) => {
     try {
       setLoading(true);
       let query = supabase
-        .from('orders')
-        .select(`
+        .from("orders")
+        .select(
+          `
           *,
           supplier:suppliers(*),
           driver:users(*)
-        `)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .order("created_at", { ascending: false });
 
       // Filter by driver if specified
       if (driverId) {
-        query = query.eq('driver_id', driverId);
+        query = query.eq("driver_id", driverId);
       }
 
       // Filter by supplier if specified
       if (supplierId) {
-        query = query.eq('supplier_id', supplierId);
+        query = query.eq("supplier_id", supplierId);
       }
 
       const { data, error } = await query;
@@ -34,71 +36,98 @@ export const useOrders = (driverId?: string, supplierId?: string) => {
       if (error) throw error;
       setOrders(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  const createOrder = async (orderData: Omit<Order, 'id' | 'created_at' | 'updated_at' | 'supplier' | 'driver'>) => {
+  const createOrder = async (
+    orderData: Omit<
+      Order,
+      "id" | "created_at" | "updated_at" | "supplier" | "driver"
+    >
+  ) => {
     try {
       const { data, error } = await supabase
-        .from('orders')
+        .from("orders")
         .insert(orderData)
-        .select(`
+        .select(
+          `
           *,
           supplier:suppliers(*),
           driver:users(*)
-        `)
+        `
+        )
         .single();
 
       if (error) throw error;
-      
-      setOrders(prev => [data, ...prev]);
+
+      setOrders((prev) => [data, ...prev]);
       return data;
     } catch (err) {
-      throw err instanceof Error ? err : new Error('Failed to create order');
+      throw err instanceof Error ? err : new Error("Failed to create order");
     }
   };
 
   const updateOrder = async (id: string, updates: Partial<Order>) => {
     try {
       const { data, error } = await supabase
-        .from('orders')
+        .from("orders")
         .update(updates)
-        .eq('id', id)
-        .select(`
+        .eq("id", id)
+        .select(
+          `
           *,
           supplier:suppliers(*),
           driver:users(*)
-        `)
+        `
+        )
         .single();
 
       if (error) throw error;
-      
-      setOrders(prev => prev.map(o => o.id === id ? data : o));
+
+      setOrders((prev) => prev.map((o) => (o.id === id ? data : o)));
       return data;
     } catch (err) {
-      throw err instanceof Error ? err : new Error('Failed to update order');
+      throw err instanceof Error ? err : new Error("Failed to update order");
     }
   };
 
   const assignDriver = async (orderId: string, driverId: string) => {
-    return updateOrder(orderId, { 
-      driver_id: driverId, 
-      status: 'assigned' as const 
+    return updateOrder(orderId, {
+      driver_id: driverId,
+      status: "assigned" as const,
     });
   };
 
-  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+  const updateOrderStatus = async (
+    orderId: string,
+    status: Order["status"]
+  ) => {
     const updates: Partial<Order> = { status };
-    
+
     // Set actual delivery time when delivered
-    if (status === 'delivered') {
+    if (status === "delivered") {
       updates.actual_delivery_time = new Date().toISOString();
     }
 
     return updateOrder(orderId, updates);
+  };
+
+  const deleteOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Failed to delete order");
+    }
   };
 
   useEffect(() => {
@@ -113,6 +142,7 @@ export const useOrders = (driverId?: string, supplierId?: string) => {
     updateOrder,
     assignDriver,
     updateOrderStatus,
+    deleteOrder,
     refetch: fetchOrders,
   };
 };

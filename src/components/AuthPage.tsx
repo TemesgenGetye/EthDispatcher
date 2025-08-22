@@ -2,15 +2,10 @@ import React, { useState } from "react";
 import { Eye, EyeOff, Truck, Mail, Lock } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 
-interface AuthPageProps {
-  onLogin: (user: any) => void;
-}
-
-const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
+const AuthPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signIn } = useAuth();
+  const { signIn, isSigningIn } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -31,7 +26,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       return;
     }
 
-    setIsLoading(true);
     setError(null);
 
     try {
@@ -39,8 +33,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       // The useAuth hook will handle setting the user state
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -126,10 +118,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSigningIn}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
+              {isSigningIn ? (
                 <div className="flex items-center justify-center">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                   Signing In...

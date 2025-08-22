@@ -1,18 +1,26 @@
 import React from "react";
-import { LayoutDashboard, Package, ShoppingCart, Truck, FileText, Settings } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Truck,
+  Settings,
+} from "lucide-react";
 
 interface AdminSidebarProps {
   activeItem: string;
   onItemSelect: (item: string) => void;
 }
 
-const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeItem, onItemSelect }) => {
+const AdminSidebar: React.FC<AdminSidebarProps> = ({
+  activeItem,
+  onItemSelect,
+}) => {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "suppliers", label: "Suppliers", icon: Package },
     { id: "orders", label: "Orders", icon: ShoppingCart },
     { id: "drivers", label: "Drivers", icon: Truck },
-    { id: "reports", label: "Reports", icon: FileText },
   ];
 
   return (

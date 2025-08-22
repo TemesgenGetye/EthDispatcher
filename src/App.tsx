@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import AuthPage from "./components/AuthPage";
 import AdminDashboard from "./components/admin/AdminDashboard";
@@ -8,14 +7,20 @@ import SupplierDashboard from "./components/supplier/SupplierDashboard";
 function App() {
   const { user, loading, signOut } = useAuth();
 
-  // Debug logging
-  useEffect(() => {
-    console.log("App state changed:", {
-      user: user?.id,
-      loading,
-      userRole: user?.role,
-    });
-  }, [user, loading]);
+  if (loading) {
+    return (
+      <div className="h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
 
   const handleLogout = async () => {
     try {
@@ -25,34 +30,6 @@ function App() {
     }
   };
 
-  // Show loading spinner while checking authentication
-  if (loading) {
-    return (
-      <div className="h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-          <p className="text-xs text-gray-500 mt-2">
-            Checking authentication...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show auth page if user is not logged in
-  if (!user) {
-    console.log("No user found, showing AuthPage");
-    return <AuthPage onLogin={() => {}} />;
-  }
-
-  console.log("User authenticated:", {
-    id: user.id,
-    role: user.role,
-    name: user.full_name,
-  });
-
-  // Render appropriate dashboard based on user role
   if (user.role === "admin") {
     return <AdminDashboard user={user} onLogout={handleLogout} />;
   }
@@ -65,7 +42,6 @@ function App() {
     return <SupplierDashboard user={user} onLogout={handleLogout} />;
   }
 
-  // Fallback for unknown roles
   return (
     <div className="h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">

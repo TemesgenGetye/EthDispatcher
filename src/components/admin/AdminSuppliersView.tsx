@@ -13,7 +13,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { useSuppliers } from "../../hooks/useSuppliers";
+import { Supplier } from "../../lib/supabase";
 import CreateSupplierModal from "./CreateSupplierModal";
+import EditSupplierModal from "./EditSupplierModal";
 
 const AdminSuppliersView: React.FC = () => {
   const {
@@ -27,6 +29,7 @@ const AdminSuppliersView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,6 +75,45 @@ const AdminSuppliersView: React.FC = () => {
       setShowCreateModal(false);
     } catch (err) {
       console.error("Failed to create supplier:", err);
+      throw err;
+    }
+  };
+
+  const handleEditSupplier = (supplier: Supplier) => {
+    setEditingSupplier(supplier);
+  };
+
+  const handleUpdateSupplier = async (supplierData: Partial<Supplier>) => {
+    if (!editingSupplier) return;
+
+    try {
+      await updateSupplier(editingSupplier.id, supplierData);
+      setEditingSupplier(null);
+      console.log("Supplier updated successfully");
+    } catch (err) {
+      console.error("Failed to update supplier:", err);
+      throw err;
+    }
+  };
+
+  const handleDeleteSupplier = async (supplierId: string) => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this supplier? This action cannot be undone."
+      )
+    ) {
+      try {
+        await deleteSupplier(supplierId);
+        // Show success message (you could use a toast notification library here)
+        console.log("Supplier deleted successfully");
+        // Optionally show a success message to the user
+        alert("Supplier deleted successfully!");
+      } catch (err) {
+        console.error("Failed to delete supplier:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Unknown error occurred";
+        alert(`Failed to delete supplier: ${errorMessage}`);
+      }
     }
   };
 
@@ -260,12 +302,14 @@ const AdminSuppliersView: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <button
+                  onClick={() => handleEditSupplier(supplier)}
                   className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                   title="Edit"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
+                  onClick={() => handleDeleteSupplier(supplier.id)}
                   className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                   title="Delete"
                 >
@@ -294,6 +338,15 @@ const AdminSuppliersView: React.FC = () => {
         <CreateSupplierModal
           onClose={() => setShowCreateModal(false)}
           onSubmit={handleCreateSupplier}
+        />
+      )}
+
+      {/* Edit Supplier Modal */}
+      {editingSupplier && (
+        <EditSupplierModal
+          supplier={editingSupplier}
+          onClose={() => setEditingSupplier(null)}
+          onSubmit={handleUpdateSupplier}
         />
       )}
     </div>

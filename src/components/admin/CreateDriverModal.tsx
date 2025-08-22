@@ -118,9 +118,65 @@ const CreateDriverModal: React.FC<CreateDriverModalProps> = ({
 
       await onSubmit(driverData);
     } catch (err) {
-      setErrors({
-        submit: err instanceof Error ? err.message : "Failed to create driver",
-      });
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create driver";
+
+      console.log("Error message received:", errorMessage); // Debug log
+
+      // Parse specific field errors
+      if (
+        errorMessage.toLowerCase().includes("email") &&
+        errorMessage.toLowerCase().includes("already")
+      ) {
+        setErrors({
+          email:
+            "This email address is already registered. Please use a different email.",
+        });
+      } else if (
+        errorMessage.toLowerCase().includes("phone") &&
+        errorMessage.toLowerCase().includes("already")
+      ) {
+        setErrors({
+          phone:
+            "This phone number is already registered. Please use a different phone number.",
+        });
+      } else if (
+        errorMessage.toLowerCase().includes("phone number") &&
+        errorMessage.toLowerCase().includes("already exists")
+      ) {
+        setErrors({
+          phone:
+            "This phone number is already registered. Please use a different phone number.",
+        });
+      } else if (
+        errorMessage.toLowerCase().includes("a user with phone number") &&
+        errorMessage.toLowerCase().includes("already exists")
+      ) {
+        setErrors({
+          phone:
+            "This phone number is already registered. Please use a different phone number.",
+        });
+      } else if (
+        errorMessage.toLowerCase().includes("a user with email") &&
+        errorMessage.toLowerCase().includes("already exists")
+      ) {
+        setErrors({
+          email:
+            "This email address is already registered. Please use a different email.",
+        });
+      } else if (
+        errorMessage.toLowerCase().includes("email or phone") &&
+        errorMessage.toLowerCase().includes("already")
+      ) {
+        setErrors({
+          email:
+            "This email or phone number is already in use. Please use different contact information.",
+          phone:
+            "This email or phone number is already in use. Please use different contact information.",
+        });
+      } else {
+        setErrors({ submit: errorMessage });
+      }
     } finally {
       setIsLoading(false);
     }

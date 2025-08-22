@@ -1,12 +1,15 @@
-import React, { useState } from "react";
-import { X, Building2, User, Phone, Mail, MapPin, Lock } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Building2, User, Phone, Mail, MapPin } from "lucide-react";
+import { Supplier } from "../../hooks/useSuppliers";
 
-interface CreateSupplierModalProps {
+interface EditSupplierModalProps {
+  supplier: Supplier;
   onClose: () => void;
-  onSubmit: (supplierData: any) => Promise<void>;
+  onSubmit: (supplierData: Partial<Supplier>) => Promise<void>;
 }
 
-const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
+const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
+  supplier,
   onClose,
   onSubmit,
 }) => {
@@ -14,13 +17,12 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
-    name: "",
-    contact_name: "",
-    phone: "",
-    email: "",
-    address: "",
-    status: "active" as const,
-    password: "",
+    name: supplier.name,
+    contact_name: supplier.contact_name,
+    phone: supplier.phone,
+    email: supplier.email,
+    address: supplier.address,
+    status: supplier.status,
   });
 
   const handleInputChange = (
@@ -54,11 +56,6 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
     if (!formData.address.trim()) {
       newErrors.address = "Address is required";
     }
-    if (!formData.password.trim()) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -73,9 +70,10 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
 
     try {
       await onSubmit(formData);
+      onClose();
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to create supplier";
+        err instanceof Error ? err.message : "Failed to update supplier";
 
       // Check for specific field errors
       if (
@@ -93,14 +91,6 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
         setErrors({
           phone:
             "This phone number is already registered. Please use a different phone number.",
-        });
-      } else if (
-        errorMessage.toLowerCase().includes("email or phone") &&
-        errorMessage.toLowerCase().includes("already")
-      ) {
-        setErrors({
-          email: "This email or phone number is already in use.",
-          phone: "This email or phone number is already in use.",
         });
       } else {
         setErrors({
@@ -123,10 +113,10 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Add New Supplier
+                Edit Supplier
               </h2>
               <p className="text-sm text-gray-600">
-                Create a new supplier profile
+                Update supplier information
               </p>
             </div>
           </div>
@@ -261,29 +251,6 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
             )}
           </div>
 
-          {/* Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                  errors.password ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Enter password for login"
-              />
-            </div>
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
-          </div>
-
           {/* Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -293,7 +260,7 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
               name="status"
               value={formData.status}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -318,10 +285,10 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
               {isLoading ? (
                 <div className="flex items-center">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Creating...
+                  Updating...
                 </div>
               ) : (
-                "Create Supplier"
+                "Update Supplier"
               )}
             </button>
           </div>
@@ -331,4 +298,4 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
   );
 };
 
-export default CreateSupplierModal;
+export default EditSupplierModal;

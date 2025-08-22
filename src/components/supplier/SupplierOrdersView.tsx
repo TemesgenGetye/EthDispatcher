@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Search, Package, MapPin, Phone, Calendar, DollarSign, Truck } from "lucide-react";
+import {
+  Search,
+  Package,
+  MapPin,
+  Phone,
+  Calendar,
+  DollarSign,
+  Truck,
+} from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import type { Order } from "../../lib/supabase";
 
@@ -7,7 +15,9 @@ interface SupplierOrdersViewProps {
   supplierId: string;
 }
 
-const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) => {
+const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({
+  supplierId,
+}) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +33,8 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select(`
+        .select(
+          `
           *,
           driver:users!orders_driver_id_fkey(
             id,
@@ -31,7 +42,8 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
             phone,
             vehicle_info
           )
-        `)
+        `
+        )
         .eq("supplier_id", supplierId)
         .order("created_at", { ascending: false });
 
@@ -83,7 +95,8 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
       order.pickup_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.delivery_address.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || order.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -92,7 +105,8 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
     total: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
     assigned: orders.filter((o) => o.status === "assigned").length,
-    out_for_delivery: orders.filter((o) => o.status === "out_for_delivery").length,
+    out_for_delivery: orders.filter((o) => o.status === "out_for_delivery")
+      .length,
     delivered: orders.filter((o) => o.status === "delivered").length,
     returned: orders.filter((o) => o.status === "returned").length,
     cancelled: orders.filter((o) => o.status === "cancelled").length,
@@ -100,10 +114,12 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading orders...</p>
+          <div className="w-6 h-6 md:w-8 md:h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3 md:mb-4"></div>
+          <p className="text-sm md:text-base text-gray-600">
+            Loading orders...
+          </p>
         </div>
       </div>
     );
@@ -111,64 +127,82 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-4">
         <div className="text-center">
-          <Package className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 mb-2">Error loading orders</p>
-          <p className="text-gray-600">{error}</p>
+          <Package className="w-8 h-8 md:w-12 md:h-12 text-red-500 mx-auto mb-3 md:mb-4" />
+          <p className="text-red-600 mb-2 text-sm md:text-base">
+            Error loading orders
+          </p>
+          <p className="text-gray-600 text-sm md:text-base">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-gray-50 p-6">
+    <div className="flex-1 bg-gray-50 p-3 md:p-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 md:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">My Orders</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
+              My Orders
+            </h2>
+            <p className="text-xs md:text-sm text-gray-600 mt-1">
               Track and manage your delivery orders
             </p>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-gray-900">{statusCounts.total}</div>
-            <div className="text-sm text-gray-600">Total</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4 mb-6">
+          <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+            <div className="text-lg md:text-2xl font-bold text-gray-900">
+              {statusCounts.total}
+            </div>
+            <div className="text-xs md:text-sm text-gray-600">Total</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-yellow-600">{statusCounts.pending}</div>
-            <div className="text-sm text-gray-600">Pending</div>
+          <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+            <div className="text-lg md:text-2xl font-bold text-yellow-600">
+              {statusCounts.pending}
+            </div>
+            <div className="text-xs md:text-sm text-gray-600">Pending</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-blue-600">{statusCounts.assigned}</div>
-            <div className="text-sm text-gray-600">Assigned</div>
+          <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+            <div className="text-lg md:text-2xl font-bold text-blue-600">
+              {statusCounts.assigned}
+            </div>
+            <div className="text-xs md:text-sm text-gray-600">Assigned</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-purple-600">{statusCounts.out_for_delivery}</div>
-            <div className="text-sm text-gray-600">In Transit</div>
+          <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+            <div className="text-lg md:text-2xl font-bold text-purple-600">
+              {statusCounts.out_for_delivery}
+            </div>
+            <div className="text-xs md:text-sm text-gray-600">In Transit</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-green-600">{statusCounts.delivered}</div>
-            <div className="text-sm text-gray-600">Delivered</div>
+          <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+            <div className="text-lg md:text-2xl font-bold text-green-600">
+              {statusCounts.delivered}
+            </div>
+            <div className="text-xs md:text-sm text-gray-600">Delivered</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-red-600">{statusCounts.returned}</div>
-            <div className="text-sm text-gray-600">Returned</div>
+          <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+            <div className="text-lg md:text-2xl font-bold text-red-600">
+              {statusCounts.returned}
+            </div>
+            <div className="text-xs md:text-sm text-gray-600">Returned</div>
           </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <div className="text-2xl font-bold text-gray-600">{statusCounts.cancelled}</div>
-            <div className="text-sm text-gray-600">Cancelled</div>
+          <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+            <div className="text-lg md:text-2xl font-bold text-gray-600">
+              {statusCounts.cancelled}
+            </div>
+            <div className="text-xs md:text-sm text-gray-600">Cancelled</div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="bg-white p-3 md:p-4 rounded-lg border border-gray-200 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -176,14 +210,14 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
                 placeholder="Search orders by customer, serial number, or address..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
               />
             </div>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base min-w-[120px]"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -198,11 +232,11 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
       </div>
 
       {/* Orders Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {filteredOrders.map((order) => (
           <div
             key={order.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 hover:shadow-md transition-shadow"
           >
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
@@ -238,39 +272,53 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
             {/* Order Details */}
             <div className="space-y-3 mb-4">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span className="truncate">
-                  From: {order.pickup_address}
-                </span>
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">From: {order.pickup_address}</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span className="truncate">
-                  To: {order.delivery_address}
-                </span>
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">To: {order.delivery_address}</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Phone className="w-4 h-4" />
-                <span>{order.customer_phone}</span>
+                <Phone className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{order.customer_phone}</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  {new Date(order.order_date).toLocaleDateString()}
-                </span>
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+                <span>{new Date(order.order_date).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <DollarSign className="w-4 h-4" />
+                <DollarSign className="w-4 h-4 flex-shrink-0" />
                 <span>${order.price.toFixed(2)}</span>
               </div>
             </div>
+
+            {/* Return Information - Show only for returned orders */}
+            {order.status === "returned" && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-red-600 text-xs">↩</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-red-800 mb-1">
+                      Order Returned
+                    </h4>
+                    <p className="text-sm text-red-700">
+                      {order.notes ||
+                        "This order was returned. Please contact the driver for more details."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Driver Info */}
             {order.driver && (
               <div className="border-t border-gray-100 pt-3 mb-4">
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <Truck className="w-4 h-4" />
-                  <span>
+                  <Truck className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">
                     Driver: {order.driver.full_name} ({order.driver.phone})
                   </span>
                 </div>
@@ -278,11 +326,11 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
             )}
 
             {/* Order Summary */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-100 gap-2">
               <div className="text-sm text-gray-600">
                 {order.items_count} items • {order.weight_kg || "N/A"} kg
               </div>
-              <div className="text-right">
+              <div className="text-right sm:text-left">
                 <div className="text-xs text-gray-500">Order Date</div>
                 <div className="text-sm font-medium text-gray-900">
                   {new Date(order.created_at).toLocaleDateString()}
@@ -295,12 +343,12 @@ const SupplierOrdersView: React.FC<SupplierOrdersViewProps> = ({ supplierId }) =
 
       {/* Empty State */}
       {filteredOrders.length === 0 && (
-        <div className="text-center py-12">
-          <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="text-center py-8 md:py-12">
+          <Package className="w-8 h-8 md:w-12 md:h-12 text-gray-300 mx-auto mb-3 md:mb-4" />
+          <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">
             No Orders Found
           </h3>
-          <p className="text-gray-600">
+          <p className="text-sm md:text-base text-gray-600">
             {orders.length === 0
               ? "You haven't received any orders yet."
               : "No orders match your current search and filter criteria."}

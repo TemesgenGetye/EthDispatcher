@@ -136,23 +136,6 @@ const CreateReturnModal: React.FC<CreateReturnModalProps> = ({
               />
             </div>
 
-            {/* Image URL (Optional) */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Image URL (Optional)
-              </label>
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="https://example.com/image.jpg"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Add a link to any relevant images (damage, wrong item, etc.)
-              </p>
-            </div>
-
             {/* Warning */}
             <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
               <div className="flex items-center gap-2 text-red-800">
